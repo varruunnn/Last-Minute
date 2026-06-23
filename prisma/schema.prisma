@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Task {
+  id        String     @id @default(uuid())
+  rawInput  String
+  status    TaskStatus @default(PENDING)
+  urgency   Int?
+  deadline  DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  subTasks  SubTask[]
+}
+
+model SubTask {
+  id          String        @id @default(uuid())
+  taskId      String
+  task        Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      SubTaskStatus @default(PENDING)
+  deadline    DateTime
+  order       Int
+  createdAt   DateTime      @default(now())
+}
+
+enum TaskStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SubTaskStatus {
+  PENDING
+  COMPLETED
+  MISSED
+}
