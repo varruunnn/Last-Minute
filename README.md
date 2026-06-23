@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+```mermaid
+graph TD
+    %% Styling
+    classDef frontend fill:#3178c6,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef backend fill:#000,stroke:#3178c6,stroke-width:2px,color:#fff;
+    classDef db fill:#336791,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef queue fill:#dc382d,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef ai fill:#ea4335,stroke:#fff,stroke-width:2px,color:#fff;
 
-## Getting Started
+    %% Nodes
+    User([User / Student])
+    
+    subgraph "Google Cloud Starter Tier (Full-Stack)"
+        UI["Next.js Frontend\n(Dashboard & Forms)"]:::frontend
+        API["Next.js API Gateway\n(REST / Server Actions)"]:::backend
+        PrismaORM["Prisma Client"]:::backend
+        Postgres[(PostgreSQL\nCloud SQL)]:::db
+    end
 
-First, run the development server:
+    subgraph "Distributed Queue Architecture"
+        Redis[("Redis\n(Job Queue & State)")]:::queue
+        Worker["Bun Worker Node\n(Job Processing)"]:::backend
+    end
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+    subgraph "Google AI Studio"
+        EvalAgent["Evaluator Agent\n(Categorization & Urgency)"]:::ai
+        PlanAgent["Worker Agent\n(Task Breakdown & JSON Output)"]:::ai
+    end
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+    %% Flow: User Input
+    User -->|Submits Brain-Dump| UI
+    UI -->|POST /api/tasks| API
+    
+    %% Flow: DB & Queue persistence
+    API -->|1. Save Raw Task Status: Pending| PrismaORM
+    API -->|2. Enqueue Job| Redis
+    PrismaORM <--> Postgres
+    
+    %% Flow: Worker Processing
+    Redis -->|3. Consume Job| Worker
+    Worker -->|4. Prompt: Assess Urgency| EvalAgent
+    EvalAgent -->|5. Returns Priority & Context| Worker
+    Worker -->|6. Prompt: Generate Schedule| PlanAgent
+    PlanAgent -->|7. Returns Strict JSON Schedule| Worker
+    
+    %% Flow: Finalize
+    Worker -->|8. Update Task & Insert Sub-Tasks| PrismaORM
+    Worker -->|9. Acknowledge Job| Redis
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+    %% Real-time update
+    Postgres -.->|Polling/Webhooks| UI
