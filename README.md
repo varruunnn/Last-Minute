@@ -1,3 +1,75 @@
+## Last-Minute Life Saver
+
+An AI-powered productivity system that converts chaotic, last-minute panic into an actionable recovery plan.
+
+Instead of acting as another task manager, Last-Minute Life Saver behaves like an intelligent triage system. Users can dump their situation in natural language, and the platform analyzes urgency, extracts deadlines, generates milestones, and continuously recalibrates plans when deadlines are missed.
+
+## Features
+## AI Task Triage
+
+Users submit a free-form "brain dump" such as:
+
+"I have a placement interview tomorrow, haven't revised DBMS or OS, and still need to solve SQL questions."
+
+The system automatically:
+
+Extracts urgency level
+Detects deadlines
+Understands context
+Creates a structured execution plan
+
+## AI-Generated Action Plans
+A dedicated planning agent generates:
+Ordered milestones
+Actionable subtasks
+Individual deadlines
+Compressed schedules for urgent situations
+
+Example:
+
+1. Revise DBMS Fundamentals
+2. Solve 10 SQL Questions
+3. Revise Operating Systems
+4. Complete Mock Interview
+
+## Asynchronous Processing Pipeline
+Task creation never waits for AI processing.
+Workflow:
+User Request
+     ↓
+API Gateway
+     ↓
+PostgreSQL
+     ↓
+Redis Queue
+     ↓
+Background Worker
+     ↓
+Gemini AI
+     ↓
+Database Update
+
+This architecture keeps API latency low while supporting expensive AI workloads.
+
+## Adaptive Replanning
+
+Most task managers stop working after a deadline is missed.
+Last-Minute Life Saver continuously monitors overdue milestones and automatically:
+Detects missed tasks
+Marks them as MISSED
+Re-queues the parent task
+Generates a compressed recovery plan
+
+This creates a feedback loop that adapts to user behavior instead of assuming perfect execution.
+
+## Real-Time Updates
+Using WebSockets via Pusher:
+Task Processing
+Task Completion
+Plan Updates
+Status Changes
+The dashboard updates instantly without page refreshes.
+
 ## 🏗 High-Level System Architecture
 
 ```mermaid
