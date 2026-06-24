@@ -2,6 +2,15 @@ import "dotenv/config";
 import { prisma } from "../db";
 import { Redis } from '@upstash/redis';
 import { GoogleGenAI, Type } from '@google/genai';
+import Pusher from 'pusher';
+
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID!,
+  key: process.env.PUSHER_KEY!,
+  secret: process.env.PUSHER_SECRET!,
+  cluster: process.env.PUSHER_CLUSTER!,
+  useTLS: true
+});
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -65,6 +74,8 @@ async function sweepAndRecalibrateDeadlines() {
           data: { status: 'PENDING' }
         });
 
+        await pusher.trigger('task-updates', 'task-completed', { taskId });
+
         await redis.lpush('task_queue', taskId);
 
         console.log(`[Triage Sweep] Re-queued Task ID: ${taskId} to compress the schedule.`);
@@ -91,6 +102,8 @@ async function processQueue() {
           where: { id: taskId },
           data: { status: 'PROCESSING' },
         });
+
+        await pusher.trigger('task-updates', 'task-processing', { taskId });
 
         console.log('[Worker] Routing to Evaluator Agent...');
 
@@ -219,6 +232,8 @@ async function processQueue() {
           where: { id: taskId },
           data: { status: 'COMPLETED' },
         });
+
+        await pusher.trigger('task-updates', 'task-completed', { taskId });
 
         console.log(`[Worker] Task ID: ${taskId} successfully processed.`);
       } else {

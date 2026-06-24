@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 
+import Pusher from 'pusher-js';
+
 const STATUS_CONFIG: Record<
   string,
   { label: string; dot: string; text: string; border: string; bg: string }
@@ -74,8 +76,35 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchTasks();
-    const interval = setInterval(fetchTasks, 3000);
-    return () => clearInterval(interval);
+
+    const pusher = new Pusher(
+      process.env.NEXT_PUBLIC_PUSHER_KEY!,
+      {
+        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+      }
+    );
+
+    const channel = pusher.subscribe("task-updates");
+
+    channel.bind("task-processing", (data: { taskId: string }) => {
+      console.log("Processing:", data.taskId);
+      fetchTasks();
+    });
+
+    channel.bind("task-completed", (data: { taskId: string }) => {
+      console.log("Completed:", data.taskId);
+      fetchTasks();
+    });
+
+    channel.bind("subtask-completed", () => {
+      fetchTasks();
+    });
+
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe("task-updates");
+      pusher.disconnect();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -211,8 +240,8 @@ export default function Dashboard() {
                               ${isDone
                                 ? "bg-emerald-500/5 border-emerald-500/15 opacity-60"
                                 : isMissed
-                                ? "bg-red-500/5 border-red-500/15"
-                                : "bg-zinc-800/50 border-white/6 hover:border-indigo-500/30 hover:bg-zinc-800/80"
+                                  ? "bg-red-500/5 border-red-500/15"
+                                  : "bg-zinc-800/50 border-white/6 hover:border-indigo-500/30 hover:bg-zinc-800/80"
                               }`}
                           >
                             {/* Left: checkbox + text */}
@@ -239,7 +268,7 @@ export default function Dashboard() {
                                           status: "COMPLETED",
                                         }),
                                       });
-                                      // The 3-second polling useEffect will automatically fetch the fresh UI state
+                                      fetchTasks(); 
                                     }
                                   }}
                                   className="w-4 h-4 rounded bg-zinc-700 border-zinc-600 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-zinc-900 cursor-pointer disabled:cursor-not-allowed accent-indigo-500 transition-colors"
@@ -249,13 +278,12 @@ export default function Dashboard() {
                               {/* Task Content */}
                               <div className="min-w-0">
                                 <p
-                                  className={`text-sm font-semibold leading-snug transition-all ${
-                                    isDone
+                                  className={`text-sm font-semibold leading-snug transition-all ${isDone
                                       ? "line-through text-zinc-600"
                                       : isMissed
-                                      ? "line-through text-red-500/70"
-                                      : "text-zinc-100"
-                                  }`}
+                                        ? "line-through text-red-500/70"
+                                        : "text-zinc-100"
+                                    }`}
                                 >
                                   <span className="text-zinc-600 mr-1.5 font-mono text-xs">
                                     {String(sub.order).padStart(2, "0")}.
@@ -273,16 +301,14 @@ export default function Dashboard() {
                             {/* Right: timestamp */}
                             <div className="text-right shrink-0 flex flex-col items-end">
                               <span
-                                className={`text-[10px] font-bold tracking-widest uppercase mb-0.5 ${
-                                  isMissed ? "text-red-500/70" : "text-zinc-600"
-                                }`}
+                                className={`text-[10px] font-bold tracking-widest uppercase mb-0.5 ${isMissed ? "text-red-500/70" : "text-zinc-600"
+                                  }`}
                               >
                                 {isMissed ? "Missed" : "By"}
                               </span>
                               <span
-                                className={`text-xs font-medium tabular-nums ${
-                                  isMissed ? "text-red-400" : "text-zinc-300"
-                                }`}
+                                className={`text-xs font-medium tabular-nums ${isMissed ? "text-red-400" : "text-zinc-300"
+                                  }`}
                               >
                                 {new Date(sub.deadline).toLocaleString(
                                   "en-IN",
