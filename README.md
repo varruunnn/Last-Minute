@@ -1,51 +1,61 @@
+## 🏗 High-Level System Architecture
+
 ```mermaid
 graph TD
-    %% Styling
-    classDef frontend fill:#3178c6,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef backend fill:#000,stroke:#3178c6,stroke-width:2px,color:#fff;
-    classDef db fill:#336791,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef queue fill:#dc382d,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef ai fill:#ea4335,stroke:#fff,stroke-width:2px,color:#fff;
 
-    %% Nodes
-    User([User / Student])
-    
-    subgraph "Google Cloud Starter Tier (Full-Stack)"
-        UI["Next.js Frontend\n(Dashboard & Forms)"]:::frontend
-        API["Next.js API Gateway\n(REST / Server Actions)"]:::backend
-        PrismaORM["Prisma Client"]:::backend
-        Postgres[(PostgreSQL\nCloud SQL)]:::db
+    classDef frontend fill:#18181b,stroke:#6366f1,stroke-width:2px,color:#fff;
+    classDef api fill:#27272a,stroke:#3b82f6,stroke-width:2px,color:#fff;
+    classDef db fill:#0f172a,stroke:#0ea5e9,stroke-width:2px,color:#fff;
+    classDef worker fill:#3f3f46,stroke:#f59e0b,stroke-width:2px,color:#fff;
+    classDef ai fill:#450a0a,stroke:#ef4444,stroke-width:2px,color:#fff;
+    classDef socket fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#fff;
+
+    subgraph Client["Frontend Layer (Next.js)"]
+        UI["React Dashboard"]
     end
 
-    subgraph "Distributed Queue Architecture"
-        Redis[("Redis\n(Job Queue & State)")]:::queue
-        Worker["Bun Worker Node\n(Job Processing)"]:::backend
+    subgraph Serverless["API Gateway"]
+        API["POST /api/tasks"]
     end
 
-    subgraph "Google AI Studio"
-        EvalAgent["Evaluator Agent\n(Categorization & Urgency)"]:::ai
-        PlanAgent["Worker Agent\n(Task Breakdown & JSON Output)"]:::ai
+    subgraph DataLayer["Persistence Layer"]
+        DB[("PostgreSQL<br/>Prisma")]
+        Redis[/"Upstash Redis<br/>Queue"/]
     end
 
-    %% Flow: User Input
-    User -->|Submits Brain-Dump| UI
-    UI -->|POST /api/tasks| API
-    
-    %% Flow: DB & Queue persistence
-    API -->|1. Save Raw Task Status: Pending| PrismaORM
-    API -->|2. Enqueue Job| Redis
-    PrismaORM <--> Postgres
-    
-    %% Flow: Worker Processing
-    Redis -->|3. Consume Job| Worker
-    Worker -->|4. Prompt: Assess Urgency| EvalAgent
-    EvalAgent -->|5. Returns Priority & Context| Worker
-    Worker -->|6. Prompt: Generate Schedule| PlanAgent
-    PlanAgent -->|7. Returns Strict JSON Schedule| Worker
-    
-    %% Flow: Finalize
-    Worker -->|8. Update Task & Insert Sub-Tasks| PrismaORM
-    Worker -->|9. Acknowledge Job| Redis
+    subgraph AsyncWorker["Background Worker"]
+        Worker["Job Processor"]
+        Sweep["Procrastination Engine"]
+    end
 
-    %% Real-time update
-    Postgres -.->|Polling/Webhooks| UI
+    subgraph AILayer["Google AI Studio"]
+        Eval["Evaluator Agent"]
+        Plan["Planner Agent"]
+    end
+
+    Pusher(("Pusher WebSockets"))
+
+    class UI frontend
+    class API api
+    class DB,Redis db
+    class Worker,Sweep worker
+    class Eval,Plan ai
+    class Pusher socket
+
+    UI -->|1 Submit Brain Dump| API
+    API -->|2 Save Task| DB
+    API -->|3 Push Job ID| Redis
+
+    Redis -->|4 Pop Job| Worker
+
+    Worker -->|5 Processing Event| Pusher
+    Pusher -.->|Realtime Update| UI
+
+    Worker <-->|6 Assess Urgency| Eval
+    Worker <-->|7 Generate Plan| Plan
+
+    Worker -->|8 Save Subtasks| DB
+    Worker -->|9 Completed Event| Pusher
+
+    Sweep -.->|10 Check Overdue| DB
+    Sweep -.->|11 Requeue Missed| Redis
