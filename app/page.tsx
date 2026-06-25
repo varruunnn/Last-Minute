@@ -170,23 +170,19 @@ export default function Dashboard() {
 
     setInput("");
     setLoading(false);
-    fetchTasks(); // Instantly refresh to show the new 'PENDING' task
+    fetchTasks();
   };
 
-  // Derived stats for the sidebar
   const completedCount = tasks.filter((t) => t.status === "COMPLETED").length;
   const processingCount = tasks.filter((t) => t.status === "PROCESSING").length;
   const pendingCount = tasks.filter((t) => t.status === "PENDING").length;
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
-      {/* Ambient glow */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-64 left-1/3 w-[800px] h-[500px] rounded-full bg-indigo-600/8 blur-[140px]" />
         <div className="absolute top-1/2 right-0 w-[400px] h-[400px] rounded-full bg-violet-600/5 blur-[100px]" />
       </div>
-
-      {/* ── Top nav bar ──────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-20 border-b border-white/5 bg-zinc-950/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
